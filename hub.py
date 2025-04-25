@@ -6,15 +6,13 @@ import time
 import json
 import os
 
-
-# tkinter is hellish to work with but it isnt hard just a lot
-
-
 # variables and such
-###############################################
+FONT = "Segoe UI"
 window = tk.Tk()
 window.title("The House Hub")
-
+settings_v =  {
+    "use_military_time": False
+    }
 # window size
 width, height, x, y = 500, 600, 500, 200
 window.geometry(f"{width}x{height}+{x}+{y}")
@@ -25,15 +23,13 @@ events = {}
 if os.path.exists(EVENTS_FILE):
     with open(EVENTS_FILE, 'r') as ef:
         events = json.load(ef)
-###############################################
-# this stuff
-################################################ 
+
 # clock
-clock_label = Label(window, font=('Segoe UI', 20), foreground='black')
+clock_label = Label(window, font=(FONT, 20), foreground='black')
 clock_label.grid(row=0, column=0, columnspan=2, pady=10, sticky="ew")
 
 # date
-date_label = Label(window, text="", font=('Segoe UI', 20))
+date_label = Label(window, text="", font=(FONT, 20))
 date_label.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
 
 # calendar
@@ -87,9 +83,15 @@ add_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
 delete_button = Button(button_frame, text="Delete Event", command=lambda: delete_event(Cal.get_date()))
 delete_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-###############################################
+
+today_button = Button(button_frame, text="Go to Today", command=lambda: go_to_today())
+today_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+
+settings_button = Button(button_frame, text="Settings", command=lambda: settings())
+settings_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+
 # functions
-###############################################
+
 def show_tab(name):
     if name == "details":
         event_tab.lift()
@@ -97,7 +99,11 @@ def show_tab(name):
         upcoming_tab.lift()
 
 def update_time():
-    current_time = time.strftime('%I:%M:%S %p')
+    if settings_v["use_military_time"]:
+        thetime = '%H:%M:%S'
+    else:
+        thetime = '%I:%M:%S %p'
+    current_time = time.strftime(thetime)
     clock_label.config(text=current_time)
     clock_label.after(1000, update_time)
 
@@ -146,7 +152,7 @@ def add_event(date):
             messagebox.showwarning("error", "Event cannot be empty.")
 
     add_window = Toplevel(window)
-    add_window.title(f"Add Event for {date}")
+    add_window.title(f"Add event for {date}")
     Label(add_window, text=f"Add event for {date}:").pack(padx=10, pady=5)
     event_entry = Text(add_window, height=5, width=40)
     event_entry.pack(padx=10, pady=5)
@@ -154,7 +160,7 @@ def add_event(date):
 
 def delete_event(date):
     if date not in events or not events[date]:
-        messagebox.showinfo("info", "no events to delete for this date")
+        messagebox.showinfo("Info", "No events to delete for this date.")
         return
 
     def confirm_delete():
@@ -184,7 +190,31 @@ def delete_event(date):
 def save_events_to_file():
     with open(EVENTS_FILE, 'w') as f:
         json.dump(events, f)
-###############################################
+
+def go_to_today():
+    today_str = datetime.now().strftime("%m/%d/%Y")
+    Cal.selection_set(today_str)
+    update_date()
+
+def settings():
+    settings_window = Toplevel(window)
+    settings_window.title("Settings")
+    settings_window.geometry("300x200")
+    Label(settings_window, text="Settings", font=(FONT, 14)).pack(pady=20)
+    time_change = tk.BooleanVar(value=settings_v["use_military_time"])
+    def toggle_time_format():
+        settings_v["use_military_time"] = time_change.get()
+        update_time()
+
+    time_checkbox = tk.Checkbutton(
+        settings_window,
+        text="Use Military Time (24-hour format)",
+        variable=time_change,
+        command=toggle_time_format
+    )
+    time_checkbox.pack(pady=10)
+
+
 # initialization
 update_time()
 Cal.bind("<<CalendarSelected>>", update_date)
